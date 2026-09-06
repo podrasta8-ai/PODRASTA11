@@ -548,6 +548,13 @@
           <option value="right center">Direita</option>
         </select>
         <div class="field-hint">Ajuste se a foto estiver cortando uma parte importante (ex: o rosto).</div>
+        <div id="epHeroPreviewWrap" style="margin-top:10px;">
+          <div class="field-hint" style="margin-bottom:4px;">Pré-visualização do banner:</div>
+          <div style="width:100%;aspect-ratio:16/6;border-radius:6px;overflow:hidden;background:var(--panel-2);border:1px solid var(--line);">
+            <img id="epHeroPreviewImg" style="display:none;width:100%;height:100%;object-fit:cover;object-position:center center;">
+            <div id="epHeroPreviewEmpty" style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-dim2);font-size:12px;">Escolha uma foto pra ver a prévia</div>
+          </div>
+        </div>
       </div>
       <div class="form-field full">
         <label>Link do vídeo (YouTube, Vimeo, Google Drive, Dropbox ou .mp4)</label>
@@ -1061,6 +1068,8 @@ function editEpisode(id) {
   document.getElementById('epHashtags').value = Array.isArray(ep.hashtags) ? ep.hashtags.join(', ') : '';
   document.getElementById('epVideoLinkInput').value = ep.videoLink || '';
   document.getElementById('epPhotoHeroPosition').value = ep.photoHeroPosition || 'center center';
+  setEpHeroPreview(ep.photoHero || ep.photo || null);
+  applyEpHeroPreviewPosition();
   document.getElementById('epSubmitBtn').textContent = 'Salvar alterações';
   document.getElementById('epCancelEditBtn').style.display = '';
   document.getElementById('episodeForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1071,9 +1080,44 @@ function resetEpisodeForm() {
   document.getElementById('epCategoryOtherWrap').style.display = 'none';
   document.getElementById('epSubmitBtn').textContent = 'Publicar episódio';
   document.getElementById('epCancelEditBtn').style.display = 'none';
+  document.getElementById('epPhotoHeroPosition').value = 'center center';
+  setEpHeroPreview(null);
   populateSelectWithOther('epCategorySelect', getEpisodeCategories());
 }
 document.getElementById('epCancelEditBtn').addEventListener('click', resetEpisodeForm);
+
+// ===== Pré-visualização do banner (hero) =====
+function setEpHeroPreview(src) {
+  const img = document.getElementById('epHeroPreviewImg');
+  const empty = document.getElementById('epHeroPreviewEmpty');
+  if (src) {
+    img.src = src;
+    img.style.display = 'block';
+    empty.style.display = 'none';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    empty.style.display = 'flex';
+  }
+}
+function applyEpHeroPreviewPosition() {
+  document.getElementById('epHeroPreviewImg').style.objectPosition = document.getElementById('epPhotoHeroPosition').value;
+}
+document.getElementById('epPhotoHeroPosition').addEventListener('change', applyEpHeroPreviewPosition);
+document.getElementById('epPhotoHeroInput').addEventListener('change', function () {
+  if (this.files && this.files[0]) {
+    setEpHeroPreview(URL.createObjectURL(this.files[0]));
+    applyEpHeroPreviewPosition();
+  }
+});
+document.getElementById('epPhotoInput').addEventListener('change', function () {
+  // Se ainda não tem foto de banner escolhida, usa a foto do card como prévia (é o mesmo fallback usado no site).
+  const heroInput = document.getElementById('epPhotoHeroInput');
+  if ((!heroInput.files || !heroInput.files[0]) && this.files && this.files[0]) {
+    setEpHeroPreview(URL.createObjectURL(this.files[0]));
+    applyEpHeroPreviewPosition();
+  }
+});
 document.getElementById('episodeForm').addEventListener('submit', async function (e) {
   e.preventDefault();
   const editId = document.getElementById('epEditId').value;
